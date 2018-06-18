@@ -1,2 +1,2 @@
-# 1d_simplify
-1D Simplify mesh
+# 1d_retuber
+1D Retuber mesh

@@ -2,7 +2,7 @@
 # interplanety@interplanety.org
 #
 # GitHub
-#   https://github.com/Korchy/1d_simplify
+#   https://github.com/Korchy/1d_retuber
 #
 # Version history:
 #   1.0. (2018.06.12) - start dev
