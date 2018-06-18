@@ -8,7 +8,7 @@
 #   1.0. (2018.06.12) - start dev
 #
 # Known issues:
-#   - cannot select loops on mesh shear
+#   - cannot select loops on mesh cut
 
 
 bl_info = {
@@ -70,90 +70,26 @@ class Simplify:
                 if curr_vert:
                     selected_verts.append(curr_vert)
             # -- end may be : now selected vertexes guarantee ranged from extreme and so on
-            print(selected_verts)
-
+            # print(selected_verts)
             # from any vertex build continious selection loop (mark by 'tag')
-            # print(len(selected_verts))
             for vert in selected_verts:
                 print('vert ', vert)
                 vert_loop = []
                 loops.append(vert_loop)
-
-                # if len(vert.link_edges) != 4:
-                #     continue
-
-                print(len(vert.link_loops))
-
                 for loop in vert.link_loops:
-                    print('loop', loop)
-
-                    # loop.link_loop_next.edge.select = True
-                    # loop.edge.select = True
-                    # vert_loop.append(loop.edge.index)
-
-                    # print('')
-                    # print('loop.edge', loop.edge, loop.edge.index)
-                    # print('loop.link_loop_prev.edge', loop.link_loop_prev.edge, loop.link_loop_prev.edge.index)
-                    # print('loop.link_loop_radial_prev.edge', loop.link_loop_radial_prev.edge, loop.link_loop_radial_prev.edge.index)
-                    # print('loop.link_loop_prev.link_loop_radial_prev.edge', loop.link_loop_prev.link_loop_radial_prev.edge, loop.link_loop_prev.link_loop_radial_prev.edge.index)
-                    # print('loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge', loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge, loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge.index)
-
-                    # if loop.link_loop_radial_prev.edge in selected_edges:
-                    #     print('continue on loop.link_loop_prev.edge in selected edges', loop.link_loop_prev.edge.index)
-                    #     continue
-
-                    # if loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge in selected_edges:
-                    #     print('continue on loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge in selected edges', loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge.index)
-                    #     continue
-
-                    # loop.link_loop_next.link_loop_radial_next.link_loop_next.edge.select = True
-
-                    # пробую через ребро - если ребро не принадлежит фейсу с еще одним ребром в selected - continue (это продолжение выделения)
-
-
-                    next_loop = loop
-                    # if next_loop.link_loop_prev.link_loop_radial_prev.link_loop_prev.edge in selected_edges:    # prevent continue in selection direction
-                    # # if next_loop.link_loop_next.link_loop_radial_prev.link_loop_prev.edge in selected_edges:    # prevent continue in selection direction
-                    #     print('in selected_edges')
-                    #     continue
-
-                    # next_loop.link_loop_next.link_loop_radial_next.link_loop_next.edge.select = True
-                    # print(next_loop.link_loop_next.vert)
-
-                    # if len(next_loop.link_loop_next.vert.link_edges) != 4:
-                    # # if len(next_loop.vert.link_edges) != 4:
-                    #     continue
-
-                    if len(vert.link_edges) != 4 and len(next_loop.link_loop_next.vert.link_edges) != 4:
-                    # if len(next_loop.vert.link_edges) != 4:
+                    # from 3 to 3 - selection on mesh cut - prevent to continue selection direction
+                    if len(vert.link_edges) != 4 and len(loop.edge.other_vert(vert).link_edges) != 4:
                         continue
-
-                    # next_loop.link_loop_next.link_loop_radial_next.link_loop_next.vert.select = True
-
-                    # prevent running loop aroun face on mesh shear - have issue: cannot select loops on mesh shear
-                    # if len(next_loop.link_loop_next.vert.link_edges) != 4:
-                    #     print('len(next_loop.vert.link_edges)', len(next_loop.link_loop_next.vert.link_edges))
-
-                    # if len(next_loop.vert.link_edges) != 4:
-                    #     print('len(next_loop.vert.link_edges)', len(next_loop.vert.link_edges))
-                    #     if next_loop.edge not in selected_edges:
-                    #         next_loop.edge.tag = True
-                    #         vert_loop.append(next_loop.edge.index)
-                    #     continue
-
-                    # while not next_loop.edge.tag and len(next_loop.vert.link_edges) == 4:
-                    # while not next_loop.edge.tag and len(next_loop.link_loop_next.vert.link_edges) == 4:
+                    # from 4 to 3 or 4 - prevent to continue selection direction
+                    if len(vert.link_edges) == 4\
+                            and loop.link_loop_radial_next.link_loop_next.link_loop_radial_next.link_loop_next.edge in selected_edges:
+                        continue
+                    next_loop = loop
                     while not next_loop.edge.tag:
-                        # if len(next_loop.link_loop_next.vert.link_edges) != 4:
-                        #     print('while len', len(next_loop.link_loop_next.vert.link_edges))
-                        #     break
-                        # print('next_loop', next_loop)
                         next_loop.edge.tag = True
                         vert_loop.append(next_loop.edge.index)
                         next_loop = next_loop.link_loop_next.link_loop_radial_next.link_loop_next
-                        # next_loop = next_loop.link_loop_next
-                        if len(next_loop.vert.link_edges) != 4:
-                            # print('while len', len(next_loop.vert.link_edges))
+                        if len(next_loop.vert.link_edges) != 4: # comes to mesh cut
                             break
         # bm.to_mesh(mesh.data)
         bm.free()
