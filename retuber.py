@@ -28,7 +28,7 @@ import bpy
 import bmesh
 
 
-class Simplify:
+class Retuber:
 
     @staticmethod
     def get_parallel_loops(mesh):
@@ -109,23 +109,23 @@ class Simplify:
         return loops
 
 
-class SimplifyPanel(bpy.types.Panel):
-    bl_idname = 'simplify.panel'
-    bl_label = 'Simplify'
+class RetuberPanel(bpy.types.Panel):
+    bl_idname = 'retuber.panel'
+    bl_label = 'Retuber'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
     bl_category = '1D'
 
     def draw(self, context):
-        button = self.layout.operator('simplify.mesh', icon='NONE', text='Perpendicular')
+        button = self.layout.operator('retuber.mesh', icon='NONE', text='Perpendicular')
         button.mode = True
-        button = self.layout.operator('simplify.mesh', icon='NONE', text='Parallel')
+        button = self.layout.operator('retuber.mesh', icon='NONE', text='Parallel')
         button.mode = False
 
 
-class SimplifyMesh(bpy.types.Operator):
-    bl_idname = 'simplify.mesh'
-    bl_label = 'Simplify mesh'
+class RetuberMesh(bpy.types.Operator):
+    bl_idname = 'retuber.mesh'
+    bl_label = 'Retuber mesh'
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = bpy.props.BoolProperty(
@@ -137,9 +137,9 @@ class SimplifyMesh(bpy.types.Operator):
         mesh = context.object
 
         if self.mode:
-            lst = Simplify.get_parallel_loops(mesh)
+            lst = Retuber.get_parallel_loops(mesh)
         else:
-            lst = Simplify.get_perpendicular_loops(mesh)
+            lst = Retuber.get_perpendicular_loops(mesh)
 
         # bpy.ops.object.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='EDIT')
@@ -160,13 +160,13 @@ class SimplifyMesh(bpy.types.Operator):
 
 
 def register():
-    bpy.utils.register_class(SimplifyMesh)
-    bpy.utils.register_class(SimplifyPanel)
+    bpy.utils.register_class(RetuberMesh)
+    bpy.utils.register_class(RetuberPanel)
 
 
 def unregister():
-    bpy.utils.unregister_class(SimplifyPanel)
-    bpy.utils.unregister_class(SimplifyMesh)
+    bpy.utils.unregister_class(RetuberPanel)
+    bpy.utils.unregister_class(RetuberMesh)
 
 
 if __name__ == '__main__':
