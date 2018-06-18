@@ -6,21 +6,22 @@
 #
 # Version history:
 #   1.0. (2018.06.12) - start dev
+#   1.1. (2018.06.18) - renamed to 'retuber'
 #
 # Known issues:
 #   - cannot select loops on mesh cut
 
 
 bl_info = {
-    'name': 'Simplify',
+    'name': 'Retuber',
     'category': 'Mesh',
     'author': 'Nikita Akimov',
-    'version': (1, 0, 0),
+    'version': (1, 1, 0),
     'blender': (2, 79, 0),
     'location': 'The 3D_View window - T-panel - the 1D tab',
-    'wiki_url': 'https://github.com/Korchy/1d_simplify',
-    'tracker_url': 'https://github.com/Korchy/1d_simplify',
-    'description': 'Simplify mesh'
+    'wiki_url': 'https://github.com/Korchy/1d_retuber',
+    'tracker_url': 'https://github.com/Korchy/1d_retuber',
+    'description': 'Retuber'
 }
 
 import bpy
