@@ -30,9 +30,10 @@ import bmesh
 
 class Retuber:
 
+    arrange_vert_selection = True
+
     @staticmethod
     def get_parallel_loops(mesh):
-
         bpy.ops.object.mode_set(mode='OBJECT')
 
         loops = []
@@ -46,35 +47,13 @@ class Retuber:
 
         bm.verts.ensure_lookup_table()
         selected_verts = [vert for vert in bm.verts if vert.select]
+        # --- may be: to arange vertexes from one extreme and so on
+        if __class__.arrange_vert_selection:
+            selected_verts = __class__.get_arranged_verts_from_selection(bm)
+        # -- end may be : now selected vertexes guarantee ranged from extreme and so on
         if selected_verts :
-            # print(selected_verts)
-            # --- may be: to arange vertexes from one extreme and so on
-            # find extreme vert
-            extreme_vert = None
-            for vert in selected_verts:
-                taged_edges = [edge for edge in vert.link_edges if edge.tag]
-                if len(taged_edges) == 1:
-                    extreme_vert = vert
-                    break
-            extreme_vert = selected_verts[0] if not extreme_vert else extreme_vert    # for closed selection (no extreme vert) can start from any vert
-            # from extreme moving to the end of the selection
-            selected_verts = [extreme_vert]
-            curr_vert = extreme_vert
-            while(curr_vert):
-                taged_edges = [edge for edge in curr_vert.link_edges if edge.tag]
-                curr_vert = None
-                for edge in taged_edges:
-                    if edge.verts[0] not in selected_verts:
-                        curr_vert = edge.verts[0]
-                    if edge.verts[1] not in selected_verts:
-                        curr_vert = edge.verts[1]
-                if curr_vert:
-                    selected_verts.append(curr_vert)
-            # -- end may be : now selected vertexes guarantee ranged from extreme and so on
-            # print(selected_verts)
             # from any vertex build continious selection loop (mark by 'tag')
             for vert in selected_verts:
-                print('vert ', vert)
                 vert_loop = []
                 loops.append(vert_loop)
                 for loop in vert.link_loops:
@@ -98,15 +77,102 @@ class Retuber:
 
     @staticmethod
     def get_perpendicular_loops(mesh):
+        bpy.ops.object.mode_set(mode='OBJECT')
+
         loops = []
         bm = bmesh.new()
         bm.from_mesh(mesh.data)
 
-
-
+        bm.edges.ensure_lookup_table()
+        # selected edges - only with same count of edges on extreme verts (prevent if edge comes to mesh cut (from 4 verts to 3 in one edge)
+        selected_edges = [edge for edge in bm.edges if edge.select and len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops)]
+        for edge in selected_edges:
+            edge.tag = True
+        if selected_edges:
+            # start selection (use only part not connected to mesh cut)
+            loops.append([edge.index for edge in selected_edges if len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops) == 4])
+            # from extreme edge comes by link_loop_next.link_loop_next and so on
+            curr_edge = __class__.get_extreme_edge(selected_edges)
+            next_edge = curr_edge.link_loops[0].link_loop_next.link_loop_next.edge
+            if len(next_edge.verts[0].link_loops) != 4 or len(next_edge.verts[1].link_loops) != 4:
+                next_edge = curr_edge.link_loops[1].link_loop_next.link_loop_next.edge
+            while next_edge:
+                if next_edge.tag or len(next_edge.verts[0].link_loops) != 4 or len(next_edge.verts[1].link_loops) != 4:   # closed or comes to mesh cut
+                    break
+                # get all edges from current edge (next_edge) - make loop checking parallel selection
+                next_loop = [next_edge.index]
+                loops.append(next_loop)
+                next_edge_loop = next_edge.link_loops[0].link_loop_next.link_loop_radial_next.link_loop_next
+                if not next_edge_loop.link_loop_next.link_loop_next.edge.tag and not next_edge_loop.link_loop_radial_next.link_loop_next.link_loop_next.edge.tag:
+                    next_edge_loop = next_edge.link_loops[1].link_loop_next.link_loop_radial_next.link_loop_next
+                if not next_edge_loop.link_loop_next.link_loop_next.edge.tag and not next_edge_loop.link_loop_radial_next.link_loop_next.link_loop_next.edge.tag:
+                    next_edge_loop = None
+                while next_edge_loop:
+                    if next_edge_loop.edge.tag:     # loop selection is closed
+                        break
+                    next_edge_loop.edge.tag = True
+                    next_loop.append(next_edge_loop.edge.index)
+                    next_edge_loop = next_edge_loop.link_loop_next.link_loop_radial_next.link_loop_next
+                    if not next_edge_loop.link_loop_next.link_loop_next.edge.tag and not next_edge_loop.link_loop_radial_next.link_loop_next.link_loop_next.edge.tag:
+                        next_edge_loop = None
+                next_edge.tag = True
+                # get next edge
+                if len(next_edge.link_loops) == 1:  # comes to mesh cut
+                    break
+                else:
+                    next_edge_tmp = next_edge.link_loops[0].link_loop_next.link_loop_next.edge
+                    # if mesh cut or already selected - try opposite direction
+                    if next_edge_tmp.tag or len(next_edge_tmp.verts[0].link_loops) != 4 or len(next_edge_tmp.verts[1].link_loops) != 4:
+                        next_edge = next_edge.link_loops[1].link_loop_next.link_loop_next.edge
+                    else:
+                        next_edge = next_edge_tmp
         # bm.to_mesh(mesh.data)
         bm.free()
         return loops
+
+    @staticmethod
+    def get_extreme_edge(edge_list):
+        # return any extreme edge from edge list
+        rez = None
+        for edge in edge_list:
+            # if edge.link_loops[0].link_loop_next.link_loop_radial_next.link_loop_next.edge.tag == True:
+            l1 = len([edge for edge in edge.verts[0].link_edges if edge.tag])
+            l2 = len([edge for edge in edge.verts[1].link_edges if edge.tag])
+            if l1 == 1 or l2 == 1:
+                rez = edge
+        if not rez:     # closed selection - return any edge
+            rez = edge_list[0]
+        return rez
+
+
+    @staticmethod
+    def get_arranged_verts_from_selection(bm):
+        # get the list of selected verts arranged by starting from one extreme and so on
+        # selected edges mast be tagged (edge.tag = True)
+        selected_verts = [vert for vert in bm.verts if vert.select]
+        if selected_verts:
+            # find extreme vert
+            extreme_vert = None
+            for vert in selected_verts:
+                taged_edges = [edge for edge in vert.link_edges if edge.tag]
+                if len(taged_edges) == 1:
+                    extreme_vert = vert
+                    break
+            extreme_vert = selected_verts[0] if not extreme_vert else extreme_vert  # for closed selection (no extreme vert) can start from any vert
+            # from extreme moving to the end of the selection
+            selected_verts = [extreme_vert]
+            curr_vert = extreme_vert
+            while curr_vert:
+                taged_edges = [edge for edge in curr_vert.link_edges if edge.tag]
+                curr_vert = None
+                for edge in taged_edges:
+                    if edge.verts[0] not in selected_verts:
+                        curr_vert = edge.verts[0]
+                    if edge.verts[1] not in selected_verts:
+                        curr_vert = edge.verts[1]
+                if curr_vert:
+                    selected_verts.append(curr_vert)
+        return selected_verts
 
 
 class RetuberPanel(bpy.types.Panel):
@@ -146,8 +212,8 @@ class RetuberMesh(bpy.types.Operator):
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        print('all loops')
-        print(lst)
+        # print('all loops')
+        # print(lst)
 
         for i in range(0, len(lst), 1):
             for edge_index in lst[i]:
