@@ -45,6 +45,8 @@ https://github.com/Korchy/1d_retuber
 
 **Version history**
 
+1.2 - bug fix
+
 1.1 - some improvement
 - Esc - esit without mesh modification
 - added All selection button - show all selected edges (para + perp)

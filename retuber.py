@@ -9,6 +9,7 @@
 #   0.1. (2018.06.18) - renamed to 'retuber'
 #   1.0. (2018.06.20) - first release
 #   1.1. (2018.06.20) - Esc - esit without mesh modification; + All selection button - show all selected edges (para + perp)
+#   1.2. (2018.06.20) - bug fix - added one more condition in getting parallel loops
 #
 # Known issues:
 #   - cannot select loops on mesh cut
@@ -18,7 +19,7 @@ bl_info = {
     'name': 'Retuber',
     'category': 'Mesh',
     'author': 'Nikita Akimov',
-    'version': (1, 1, 0),
+    'version': (1, 2, 0),
     'blender': (2, 79, 0),
     'location': 'The 3D_View window - T-panel - the 1D tab',
     'wiki_url': 'https://github.com/Korchy/1d_retuber',
@@ -97,7 +98,12 @@ class Retuber:
                 # get all edges from current edge (next_edge) - make loop checking parallel selection
                 next_loop = [next_edge.index]
                 loops.append(next_loop)
-                next_edge_loop = next_edge.link_loops[0].link_loop_next.link_loop_radial_next.link_loop_next
+                current_edge_loop = next_edge.link_loops[0]
+                # if chosen loop comes to mesh cut - get another loop
+                if len(current_edge_loop.edge.other_vert(current_edge_loop.vert).link_loops) != 4:
+                    current_edge_loop = next_edge.link_loops[1]
+                next_edge_loop = current_edge_loop.link_loop_next.link_loop_radial_next.link_loop_next
+                # check parallel edges one of that mast be tagged
                 if not next_edge_loop.link_loop_next.link_loop_next.edge.tag and not next_edge_loop.link_loop_radial_next.link_loop_next.link_loop_next.edge.tag and len(next_edge.link_loops) > 1:
                     next_edge_loop = next_edge.link_loops[1].link_loop_next.link_loop_radial_next.link_loop_next
                 if not next_edge_loop.link_loop_next.link_loop_next.edge.tag and not next_edge_loop.link_loop_radial_next.link_loop_next.link_loop_next.edge.tag:
