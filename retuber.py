@@ -8,6 +8,7 @@
 #   0.0. (2018.06.12) - start dev
 #   0.1. (2018.06.18) - renamed to 'retuber'
 #   1.0. (2018.06.20) - first release
+#   1.1. (2018.06.20) - Esc - esit without mesh modification; + All selection button - show all selected edges (para + perp)
 #
 # Known issues:
 #   - cannot select loops on mesh cut
@@ -17,7 +18,7 @@ bl_info = {
     'name': 'Retuber',
     'category': 'Mesh',
     'author': 'Nikita Akimov',
-    'version': (1, 0, 0),
+    'version': (1, 1, 0),
     'blender': (2, 79, 0),
     'location': 'The 3D_View window - T-panel - the 1D tab',
     'wiki_url': 'https://github.com/Korchy/1d_retuber',
@@ -189,9 +190,11 @@ class RetuberPanel(bpy.types.Panel):
         self.layout.label(text='Select only:')
         row = self.layout.row()
         button = row.operator('retuber.test', icon='NONE', text='Paralel')
-        button.mode = True
+        button.mode = 0
         button = row.operator('retuber.test', icon='NONE', text='Perpendicular')
-        button.mode = False
+        button.mode = 1
+        button = row.operator('retuber.test', icon='NONE', text='All')
+        button.mode = 2
 
 
 class RetuberMeshTest(bpy.types.Operator):
@@ -199,8 +202,8 @@ class RetuberMeshTest(bpy.types.Operator):
     bl_label = 'Test'
     bl_options = {'REGISTER', 'UNDO'}
 
-    mode = bpy.props.BoolProperty(
-        default=False
+    mode = bpy.props.IntProperty(
+        default=0
     )
 
     def execute(self, context):
@@ -217,18 +220,29 @@ class RetuberMeshTest(bpy.types.Operator):
         bpy.ops.mesh.select_all(action='DESELECT')
 
         bpy.ops.object.mode_set(mode='OBJECT')
-        if self.mode:
+        if self.mode == 0:
             print('para select')
             print('para_loops', para_loops)
             # select para loops
             for loop in para_loops:
                 for edge_index in loop:
                     context.object.data.edges[edge_index].select = True
-        else:
+        elif self.mode == 1:
             print('perp select')
             print('perp_loops', perp_loops)
             # select pert loops
             for loop in perp_loops:
+                for edge_index in loop:
+                    context.object.data.edges[edge_index].select = True
+        elif self.mode == 2:
+            print('all select')
+            print('perp_loops', perp_loops)
+            print('para_loops', para_loops)
+            # select all loops
+            for loop in perp_loops:
+                for edge_index in loop:
+                    context.object.data.edges[edge_index].select = True
+            for loop in para_loops:
                 for edge_index in loop:
                     context.object.data.edges[edge_index].select = True
         bpy.ops.object.mode_set(mode='EDIT')
@@ -315,6 +329,13 @@ class RetuberMesh(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='EDIT')
             bpy.ops.mesh.dissolve_edges()
         elif event.type in ('RET', 'NUMPAD_ENTER', 'ESC'):
+            if event.type == 'ESC':
+                # cancel modification
+                if context.object.mode != 'OBJECT':
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                context.object.data = self.start_mesh_data.copy()
+                bpy.ops.object.mode_set(mode='EDIT')
+            # exit
             Retuber.restore_environment(context)
             return {'FINISHED'}
         return {'INTERFACE'}
