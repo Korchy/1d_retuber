@@ -1,8 +1,8 @@
-# 1D_Retuber
+# 1D Retuber
 Tool for simplifying tubular meshes.
 
-**Usage:**
-
+Usage
+-
 - Switch to Edit mode
 - Select some continious edges on tubular mesh
     - Edges should be selected in the longitudinal direction! Traverse selection may cause troubles.
@@ -14,41 +14,43 @@ Tool for simplifying tubular meshes.
 
 - two buttons in "Selection only" section only show the perp/parallel selections without modifying mesh geometry
 
-**Known issues**
-
+Known issues
+-
 - may cause troubles when selection is not longtitude
 - or if selection lies on the mesh cut
 
-**Installation**
-
+Installation
+-
 Download the distributive from GitHub
 
 User Preferences - Add-ons - Install Add-on from File - select downloaded archive
 
-**Location**
-
+Location
+-
 The 3D_View window - T-panel - the 1D tab - Retuber
 
-**Tested with Blender versions:**
-
+Blender version
+-
 2.79
 
-**Developers**
-
+Developers
+-
 Paul Kotelevets
 
 Nikita Akimov
 
-**GitHub source code**
+Version history
+-
+1.2.1
+- Integrated to the NA 1D Tools
 
-https://github.com/Korchy/1d_retuber
+1.2.0
+- bug fix
 
-**Version history**
-
-1.2 - bug fix
-
-1.1 - some improvement
+1.1.0
+- some improvement
 - Esc - esit without mesh modification
 - added All selection button - show all selected edges (para + perp)
 
-1.0 - first release
+1.0.0
+- first release

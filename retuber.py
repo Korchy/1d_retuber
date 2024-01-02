@@ -8,18 +8,23 @@
 #   0.0. (2018.06.12) - start dev
 #   0.1. (2018.06.18) - renamed to 'retuber'
 #   1.0. (2018.06.20) - first release
-#   1.1. (2018.06.20) - Esc - esit without mesh modification; + All selection button - show all selected edges (para + perp)
+#   1.1. (2018.06.20) - Esc - exit without mesh modification;
+#       + All selection button - show all selected edges (para + perp)
 #   1.2. (2018.06.20) - bug fix - added one more condition in getting parallel loops
 #
 # Known issues:
 #   - cannot select loops on mesh cut
 
+import bpy
+import bmesh
+from bpy.types import Operator, Panel
+from bpy.utils import register_class, unregister_class
 
 bl_info = {
     'name': 'Retuber',
     'category': 'Mesh',
     'author': 'Nikita Akimov',
-    'version': (1, 2, 0),
+    'version': (1, 2, 1),
     'blender': (2, 79, 0),
     'location': 'The 3D_View window - T-panel - the 1D tab',
     'wiki_url': 'https://github.com/Korchy/1d_retuber',
@@ -27,8 +32,6 @@ bl_info = {
     'description': 'Retuber'
 }
 
-import bpy
-import bmesh
 
 class Retuber:
 
@@ -37,8 +40,8 @@ class Retuber:
         'mesh_select_mode': None
     }
 
-    @staticmethod
-    def get_perpendicular_loops(bm):
+    @classmethod
+    def get_perpendicular_loops(cls, bm):
         loops = []
         bm.edges.ensure_lookup_table()
         selected_edges = [edge for edge in bm.edges if edge.select]
@@ -47,11 +50,11 @@ class Retuber:
         bm.verts.ensure_lookup_table()
         selected_verts = [vert for vert in bm.verts if vert.select]
         # --- may be: to arange vertexes from one extreme and so on
-        if __class__.arrange_vert_selection:
-            selected_verts = __class__.get_arranged_verts_from_selection(bm)
+        if cls.arrange_vert_selection:
+            selected_verts = cls.get_arranged_verts_from_selection(bm)
         # -- end may be : now selected vertexes guarantee ranged from extreme and so on
-        if selected_verts :
-            # from any vertex build continious selection loop (mark by 'tag')
+        if selected_verts:
+            # from any vertex build continuous selection loop (mark by 'tag')
             for vert in selected_verts:
                 vert_loop = []
                 loops.append(vert_loop)
@@ -73,21 +76,26 @@ class Retuber:
                             break
         return loops
 
-    @staticmethod
-    def get_parallel_loops(bm):
+    @classmethod
+    def get_parallel_loops(cls, bm):
         loops = []
         bm.edges.ensure_lookup_table()
-        # selected edges - only with same count of edges on extreme verts (prevent if edge comes to mesh cut (from 4 verts to 3 in one edge)
-        # selected_edges = [edge for edge in bm.edges if edge.select and len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops)]
+        # selected edges - only with same count of edges on extreme verts
+        #   (prevent if edge comes to mesh cut (from 4 verts to 3 in one edge)
+        # selected_edges = [edge for edge in bm.edges
+        #                   if edge.select and len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops)]
         selected_edges = [edge for edge in bm.edges if edge.select]
         for edge in selected_edges:
             edge.tag = True
         if selected_edges:
             # start selection (use only part not connected to mesh cut)
-            # loops.append([edge.index for edge in selected_edges if len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops) == 4])
+            # loops.append(
+            #     [edge.index for edge in selected_edges
+            #      if len(edge.verts[0].link_loops) == len(edge.verts[1].link_loops) == 4]
+            # )
             loops.append([edge.index for edge in selected_edges])
             # from extreme edge comes by link_loop_next.link_loop_next and so on
-            curr_edge = __class__.get_extreme_edge(selected_edges)
+            curr_edge = cls.get_extreme_edge(selected_edges)
             next_edge = curr_edge.link_loops[0].link_loop_next.link_loop_next.edge
             if len(next_edge.verts[0].link_loops) != 4 or len(next_edge.verts[1].link_loops) != 4:
                 next_edge = curr_edge.link_loops[1].link_loop_next.link_loop_next.edge
@@ -174,27 +182,21 @@ class Retuber:
                     selected_verts.append(curr_vert)
         return selected_verts
 
-    @staticmethod
-    def save_environment(context):
-        __class__.environment['mesh_select_mode'] = context.tool_settings.mesh_select_mode[:]
+    @classmethod
+    def save_environment(cls, context):
+        cls.environment['mesh_select_mode'] = context.tool_settings.mesh_select_mode[:]
+
+    @classmethod
+    def restore_environment(cls, context):
+        context.tool_settings.mesh_select_mode = cls.environment['mesh_select_mode']
 
     @staticmethod
-    def restore_environment(context):
-        context.tool_settings.mesh_select_mode = __class__.environment['mesh_select_mode']
-
-
-class RetuberPanel(bpy.types.Panel):
-    bl_idname = 'retuber.panel'
-    bl_label = 'Retuber'
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
-    bl_category = '1D'
-
-    def draw(self, context):
-        self.layout.operator('retuber.start', icon='NONE', text='Start retube')
+    def ui(layout):
+        # ui panel
+        layout.operator('retuber.start', icon='NONE', text='Start retube')
         # test
-        self.layout.label(text='Select only:')
-        row = self.layout.row()
+        layout.label(text='Select only:')
+        row = layout.row()
         button = row.operator('retuber.test', icon='NONE', text='Paralel')
         button.mode = 0
         button = row.operator('retuber.test', icon='NONE', text='Perpendicular')
@@ -203,7 +205,18 @@ class RetuberPanel(bpy.types.Panel):
         button.mode = 2
 
 
-class RetuberMeshTest(bpy.types.Operator):
+class RetuberPanel(Panel):
+    bl_idname = 'retuber.panel'
+    bl_label = 'Retuber'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = '1D'
+
+    def draw(self, context):
+        Retuber.ui(layout=self.layout)
+
+
+class RetuberMeshTest(Operator):
     bl_idname = 'retuber.test'
     bl_label = 'Test'
     bl_options = {'REGISTER', 'UNDO'}
@@ -255,7 +268,7 @@ class RetuberMeshTest(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class RetuberMesh(bpy.types.Operator):
+class RetuberMesh(Operator):
     bl_idname = 'retuber.start'
     bl_label = 'Start retuber for work'
     bl_options = {'REGISTER', 'UNDO'}
@@ -347,16 +360,18 @@ class RetuberMesh(bpy.types.Operator):
         return {'INTERFACE'}
 
 
-def register():
-    bpy.utils.register_class(RetuberMeshTest)
-    bpy.utils.register_class(RetuberMesh)
-    bpy.utils.register_class(RetuberPanel)
+def register(ui=True):
+    register_class(RetuberMeshTest)
+    register_class(RetuberMesh)
+    if ui:
+        register_class(RetuberPanel)
 
 
-def unregister():
-    bpy.utils.unregister_class(RetuberPanel)
-    bpy.utils.unregister_class(RetuberMesh)
-    bpy.utils.unregister_class(RetuberMeshTest)
+def unregister(ui=True):
+    if ui:
+        unregister_class(RetuberPanel)
+    unregister_class(RetuberMesh)
+    unregister_class(RetuberMeshTest)
 
 
 if __name__ == '__main__':
